@@ -675,6 +675,77 @@ Incoming Customer Email
                 approval_status_display = "Rejected"
                 approval_status_color = "red-pill"
 
+            # AI Generated Response Card (moved above the dashboard cards)
+            st.markdown(f"""
+<div class="response-card">
+
+<div class="response-title">
+💬 AI Generated Response
+</div>
+
+<div class="response-box">
+{result['response']}
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+            if st.session_state.current_ticket_id is not None:
+                approve_col, reject_col, regen_col = st.columns([1,1,1])
+
+                with approve_col:
+                    if st.button("✅ Approve & Send", use_container_width=True, key="btn_approve_page"):
+                        try:
+                            response = requests.post(
+                                f"{API_BASE}/approve-ticket/{st.session_state.current_ticket_id}",
+                                timeout=10
+                            )
+                            if response.status_code == 200:
+                                st.session_state.approval_status = "approved"
+                                st.success("✅ Response approved and delivered to customer!")
+                                st.rerun()
+                            else:
+                                st.error(f"Approval failed: {response.status_code}")
+                        except Exception as e:
+                            st.error(f"Could not approve ticket: {e}")
+
+                with reject_col:
+                    if st.button("❌ Request Changes", use_container_width=True, key="btn_reject_page"):
+                        st.session_state.show_reject_reason = True
+
+                with regen_col:
+                    if st.button("🔄 Regenerate", use_container_width=True, key="btn_regen_page"):
+                        st.info("🔄 Regenerating response... (Feature in development)")
+
+                if st.session_state.show_reject_reason:
+                    st.markdown("---")
+                    st.subheader("Request Changes")
+                    rejection_reason = st.text_area("Why reject this response?", height=100, key="reject_reason_input_page")
+                    reject_submit_col1, reject_submit_col2 = st.columns(2)
+
+                    with reject_submit_col1:
+                        if st.button("Submit Rejection", use_container_width=True, key="btn_submit_reject_page"):
+                            try:
+                                response = requests.post(
+                                    f"{API_BASE}/reject-ticket/{st.session_state.current_ticket_id}",
+                                    params={"reason": rejection_reason},
+                                    timeout=10
+                                )
+                                if response.status_code == 200:
+                                    st.session_state.approval_status = "rejected"
+                                    st.session_state.show_reject_reason = False
+                                    st.warning("⚠️ Ticket rejected. Feedback sent to AI agents for improvement.")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Rejection failed: {response.status_code}")
+                            except Exception as e:
+                                st.error(f"Could not reject ticket: {e}")
+
+                    with reject_submit_col2:
+                        if st.button("Cancel", use_container_width=True, key="btn_cancel_reject_page"):
+                            st.session_state.show_reject_reason = False
+                            st.rerun()
+
             st.markdown(f"""
 <div class="ops-grid">
 <div class="ops-card">
@@ -706,16 +777,8 @@ Escalate to L2 Support + Notify Engineering
 </div>
 </div>
 
-<div id="response-card-placeholder"></div>
 </div>
             """, unsafe_allow_html=True)
-
-            # AI Generated Response Card
-            st.markdown(f"""<div class="response-card"><div class="response-title">💬 Proposed Customer Response</div>
-<div class="response-box">{result['response']}</div></div>
-            """, unsafe_allow_html=True)
-
-            # Approval buttons
             if st.session_state.current_ticket_id is not None:
                 approve_col, reject_col, regen_col = st.columns([1,1,1])
 
@@ -1241,6 +1304,118 @@ if result is None:
     }
 
 # =====================================================
+# AI GENERATED RESPONSE CARD
+# =====================================================
+
+st.markdown("""
+<style>
+
+.response-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+}
+
+.response-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 18px;
+}
+
+.response-box {
+    background: #f8fafc;
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 0.96rem;
+    line-height: 1.7;
+    color: #374151;
+    margin-bottom: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="response-card">
+
+<div class="response-title">
+💬 AI Generated Response
+</div>
+
+<div class="response-box">
+{result['response']}
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+if st.session_state.current_ticket_id is not None:
+    approve_col, reject_col, regen_col = st.columns([1,1,1])
+
+    # Only show buttons if not already approved
+    if st.session_state.approval_status != "approved":
+        with approve_col:
+            if st.button("✅ Approve & Send to Customer", use_container_width=True, key="btn_approve"):
+                try:
+                    response = requests.post(
+                        f"{API_BASE}/approve-ticket/{st.session_state.current_ticket_id}",
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        st.session_state.approval_status = "approved"
+                        st.session_state.approval_workflow_step = 6
+                        st.success("✅ Response approved and delivered to customer!")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error(f"Approval failed: {response.status_code}")
+                except Exception as e:
+                    st.error(f"Could not approve ticket: {e}")
+
+        with reject_col:
+            if st.button("❌ Request Changes", use_container_width=True, key="btn_reject"):
+                st.session_state.show_reject_reason = True
+
+        with regen_col:
+            if st.button("🔄 Regenerate Response", use_container_width=True, key="btn_regen"):
+                st.info("🔄 Regenerating response... (Feature in development)")
+    else:
+        st.markdown("""
+        <div style="background: #dcfce7; border: 2px solid #16a34a; padding: 16px; border-radius: 10px; text-align: center; margin: 20px 0;">
+            <strong style="color: #166534; font-size: 1.1rem;">✅ Approved & Delivered</strong>
+            <p style="margin: 8px 0 0 0; color: #166534; font-size: 0.95rem;">This response has been approved and sent to the customer.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Handle rejection with reason
+    if st.session_state.show_reject_reason:
+        st.markdown("---")
+        st.subheader("Request Changes")
+        rejection_reason = st.text_area("Why reject this response?", height=100, key="reject_reason_input")
+        reject_submit_col1, reject_submit_col2 = st.columns(2)
+        
+        with reject_submit_col1:
+            if st.button("Submit Rejection", use_container_width=True, key="btn_submit_reject"):
+                try:
+                    response = requests.post(
+                        f"{API_BASE}/reject-ticket/{st.session_state.current_ticket_id}",
+                        params={"reason": rejection_reason},
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        st.session_state.approval_status = "rejected"
+                        st.session_state.show_reject_reason = False
+                        st.warning("⚠️ Ticket rejected. Feedback sent to AI agents for improvement.")
+                        st.rerun()
+
+# =====================================================
 # OPERATIONS GRID
 # =====================================================
 
@@ -1309,8 +1484,6 @@ Escalate to L2 Support + Notify Engineering
 </div>
 
 </div>
-
-<div id="response-card-placeholder"></div>
 
 <div class="ops-card">
 
