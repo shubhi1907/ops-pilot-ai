@@ -17,7 +17,7 @@ st.set_page_config(
 API_BASE = "http://127.0.0.1:8000"
 PROCESS_URL = f"{API_BASE}/process-email"
 
-ASSET_DIR = Path("assets")
+ASSET_DIR = Path(__file__).resolve().parent / "assets"
 
 # =====================================================
 # HELPERS
