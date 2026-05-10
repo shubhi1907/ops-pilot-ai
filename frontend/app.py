@@ -1414,6 +1414,8 @@ if st.session_state.current_ticket_id is not None:
                         st.session_state.show_reject_reason = False
                         st.warning("⚠️ Ticket rejected. Feedback sent to AI agents for improvement.")
                         st.rerun()
+                except Exception as e:
+                    st.error(f"Could not reject ticket: {e}")
 
 # =====================================================
 # OPERATIONS GRID
